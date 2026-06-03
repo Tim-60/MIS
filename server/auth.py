@@ -10,7 +10,7 @@ from .models import Staff
 from .config import settings
 from pydantic import BaseModel
 
-# Конфигурация безопасности
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

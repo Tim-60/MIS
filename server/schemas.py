@@ -3,12 +3,12 @@ from typing import Optional, List
 from datetime import date, datetime
 from decimal import Decimal
 
-# Base schemas
+
 class BaseSchema(BaseModel):
     class Config:
         from_attributes = True
 
-# Staff schemas
+
 class StaffBase(BaseModel):
     full_name: str
     role: str
@@ -29,7 +29,6 @@ class StaffResponse(StaffBase):
     class Config:
         from_attributes = True
 
-# Patient schemas
 class PatientBase(BaseModel):
     full_name: str
     passport_data: str
@@ -53,7 +52,7 @@ class PatientResponse(PatientBase):
     class Config:
         from_attributes = True
 
-# Medical Card schemas
+
 class MedicalCardBase(BaseModel):
     patient_id: int
     registrar_id: int
@@ -72,7 +71,6 @@ class MedicalCardResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Visit schemas
 class VisitBase(BaseModel):
     card_id: int
     doctor_id: int
@@ -97,7 +95,6 @@ class VisitResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Diagnosis schemas
 class DiagnosisBase(BaseModel):
     visit_id: int
     severity: Optional[str] = None
@@ -115,7 +112,6 @@ class DiagnosisResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Treatment Plan schemas
 class TreatmentPlanBase(BaseModel):
     visit_id: int
     service_id: Optional[int] = None
@@ -133,7 +129,6 @@ class TreatmentPlanResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Auth schemas
 class Token(BaseModel):
     access_token: str
     token_type: str

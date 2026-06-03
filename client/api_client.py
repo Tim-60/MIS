@@ -17,7 +17,6 @@ class APIClient:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
     
-    # ============ AUTH METHODS ============
     
     def login(self, login: str, password: str) -> bool:
         """Авторизация пользователя"""
@@ -38,7 +37,6 @@ class APIClient:
         """Выход из системы"""
         self.token = None
     
-    # ============ PATIENT METHODS ============
     
     def get_patients(self) -> List[Dict]:
         """Получение списка всех пациентов"""
@@ -95,10 +93,9 @@ class APIClient:
         response.raise_for_status()
         return response.json()
     
-    # ============ VISIT METHODS ============
     
     def create_visit(self, card_id: int, doctor_id: int, complaints: str) -> Dict:
-        """Создание нового визита (Sequence Diagram step 9)"""
+        """Создание нового визита"""
         response = requests.post(
             f"{self.base_url}/visits",
             json={
@@ -113,7 +110,7 @@ class APIClient:
         return response.json()
     
     def complete_visit(self, visit_id: int) -> bool:
-        """Завершение визита (Sequence Diagram step 31)"""
+        """Завершение визита"""
         response = requests.put(
             f"{self.base_url}/visits/{visit_id}/complete",
             headers=self._get_headers()
@@ -129,10 +126,8 @@ class APIClient:
         response.raise_for_status()
         return response.json()
     
-    # ============ DIAGNOSIS METHODS ============
     
     def create_diagnosis(self, visit_id: int, severity: str, description: str) -> Dict:
-        """Создание диагноза (Sequence Diagram step 16)"""
         response = requests.post(
             f"{self.base_url}/diagnoses",
             json={
@@ -145,10 +140,8 @@ class APIClient:
         response.raise_for_status()
         return response.json()
     
-    # ============ TREATMENT PLAN METHODS ============
     
     def create_treatment_plan(self, visit_id: int, doctor_conclusion: str) -> Dict:
-        """Создание плана лечения (Sequence Diagram step 23)"""
         response = requests.post(
             f"{self.base_url}/treatment_plans",
             json={

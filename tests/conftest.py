@@ -7,7 +7,6 @@ from server.main import app
 from server.models import Staff
 from server.auth import get_password_hash
 
-# Тестовая БД в памяти
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
 engine = create_engine(
@@ -17,8 +16,6 @@ engine = create_engine(
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# ❌ УДАЛИТЕ этот модульный override — он создаёт отдельную сессию
-# app.dependency_overrides[get_db] = override_get_db  <-- удалить!
 
 @pytest.fixture(scope="function")
 def db_session():
@@ -34,16 +31,14 @@ def db_session():
 @pytest.fixture(scope="function")
 def client(db_session):
     """Фикстура тестового клиента с общей сессией"""
-    # 🔥 Переопределяем get_db, чтобы возвращать ТОТУ ЖЕ сессию, что в тесте
     def override_get_db():
-        yield db_session  # Одна сессия на тест + приложение
+        yield db_session  
     
     app.dependency_overrides[get_db] = override_get_db
     
     with TestClient(app) as c:
         yield c
     
-    # Очищаем после теста, чтобы не влиял на другие
     app.dependency_overrides.clear()
 
 @pytest.fixture

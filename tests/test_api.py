@@ -48,7 +48,6 @@ def test_get_patients(auth_headers):
 
 def test_create_visit(auth_headers, db_session):
     """Тест создания визита через API"""
-    # Создаем пациента и карту
     from server.models import Patient, MedicalCard
     from datetime import date
     
@@ -86,7 +85,6 @@ def test_create_visit(auth_headers, db_session):
 
 def test_complete_visit(auth_headers, db_session):
     """Тест завершения визита (Sequence Diagram)"""
-    # Создаем визит
     from server.models import Patient, MedicalCard, Visit
     from datetime import date
     
@@ -113,7 +111,6 @@ def test_complete_visit(auth_headers, db_session):
     db_session.add(visit)
     db_session.commit()
     
-    # Завершаем визит
     response = client.put(
         f"/visits/{visit.visit_id}/complete",
         headers=auth_headers
@@ -121,13 +118,11 @@ def test_complete_visit(auth_headers, db_session):
     
     assert response.status_code == 200
     
-    # Проверяем статус
     visit = db_session.query(Visit).filter(Visit.visit_id == visit.visit_id).first()
     assert visit.status == "completed"
 
 def test_create_diagnosis(auth_headers, db_session):
     """Тест создания диагноза (Sequence Diagram)"""
-    # Создаем визит
     from server.models import Patient, MedicalCard, Visit
     from datetime import date
     
@@ -177,8 +172,8 @@ def test_unauthorized_access():
 def test_validation_error(auth_headers):
     """Тест валидации данных"""
     invalid_patient = {
-        "full_name": "",  # Пустое имя
-        "passport_data": "123",  # Слишком короткий
+        "full_name": "",  
+        "passport_data": "123",  
     }
     
     response = client.post(
@@ -187,4 +182,4 @@ def test_validation_error(auth_headers):
         headers=auth_headers
     )
     
-    assert response.status_code == 422  # Validation Error
+    assert response.status_code == 422  

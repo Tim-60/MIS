@@ -8,7 +8,6 @@ from .auth import get_password_hash
 T = TypeVar('T')
 
 class IRepository(ABC, Generic[T]):
-    """Базовый интерфейс репозитория (Repository Pattern)"""
     
     @abstractmethod
     def get_by_id(self, id: int) -> Optional[T]:
@@ -35,13 +34,11 @@ class IRepository(ABC, Generic[T]):
         pass
 
 class StaffRepository(IRepository[Staff]):
-    """Репозиторий для работы с персоналом"""
     
     def __init__(self, session: Session):
         self.session = session
         self.model = Staff
     
-    # ORM методы
     def get_by_id(self, id: int) -> Optional[Staff]:
         return self.session.query(Staff).filter(Staff.staff_id == id).first()
     
@@ -49,7 +46,6 @@ class StaffRepository(IRepository[Staff]):
         return self.session.query(Staff).all()
     
     def add(self, entity: Staff) -> Staff:
-        # Хешируем пароль перед сохранением
         if entity.password_hash and not entity.password_hash.startswith('$'):
             entity.password_hash = get_password_hash(entity.password_hash)
         self.session.add(entity)
@@ -82,7 +78,6 @@ class StaffRepository(IRepository[Staff]):
                 query = query.filter(getattr(Staff, field) == value)
         return query.all()
     
-    # Raw SQL методы
     def get_by_id_sql(self, id: int) -> Optional[Dict]:
         result = self.session.execute(
             text("SELECT * FROM staff WHERE staff_id = :id"),
@@ -127,7 +122,7 @@ class StaffRepository(IRepository[Staff]):
             raise
 
 class PatientRepository(IRepository[Patient]):
-    """Репозиторий для работы с пациентами"""
+    
     
     def __init__(self, session: Session):
         self.session = session
@@ -170,7 +165,7 @@ class PatientRepository(IRepository[Patient]):
                 query = query.filter(getattr(Patient, field) == value)
         return query.all()
     
-    # Raw SQL методы
+    
     def find_by_name_sql(self, name: str) -> List[Dict]:
         result = self.session.execute(
             text("SELECT * FROM patients WHERE full_name LIKE :name"),
@@ -189,7 +184,7 @@ class PatientRepository(IRepository[Patient]):
         return [dict(row._mapping) for row in result.fetchall()]
 
 class VisitRepository(IRepository[Visit]):
-    """Репозиторий для работы с визитами"""
+    
     
     def __init__(self, session: Session):
         self.session = session
@@ -232,7 +227,7 @@ class VisitRepository(IRepository[Visit]):
                 query = query.filter(getattr(Visit, field) == value)
         return query.all()
     
-    # Специфичные методы
+    
     def find_by_doctor(self, doctor_id: int) -> List[Visit]:
         return self.session.query(Visit).filter(Visit.doctor_id == doctor_id).all()
     
@@ -241,7 +236,7 @@ class VisitRepository(IRepository[Visit]):
             Visit.visit_date.between(start, end)
         ).all()
     
-    # Raw SQL методы
+    
     def find_by_doctor_sql(self, doctor_id: int) -> List[Dict]:
         result = self.session.execute(
             text("SELECT * FROM visits WHERE doctor_id = :doctor_id"),
@@ -250,7 +245,6 @@ class VisitRepository(IRepository[Visit]):
         return [dict(row._mapping) for row in result.fetchall()]
     
     def update_status_sql(self, visit_id: int, status: str) -> bool:
-        """Обновление статуса визита через raw SQL с обработкой транзакции"""
         try:
             result = self.session.execute(
                 text("UPDATE visits SET status = :status WHERE visit_id = :id"),
@@ -263,7 +257,6 @@ class VisitRepository(IRepository[Visit]):
             return False
 
 class DiagnosisRepository(IRepository[Diagnosis]):
-    """Репозиторий для работы с диагнозами"""
     
     def __init__(self, session: Session):
         self.session = session
@@ -307,7 +300,7 @@ class DiagnosisRepository(IRepository[Diagnosis]):
         return query.all()
 
 class TreatmentPlanRepository(IRepository[TreatmentPlan]):
-    """Репозиторий для работы с планами лечения"""
+    
     
     def __init__(self, session: Session):
         self.session = session
@@ -350,9 +343,7 @@ class TreatmentPlanRepository(IRepository[TreatmentPlan]):
                 query = query.filter(getattr(TreatmentPlan, field) == value)
         return query.all()
 
-# Factory для создания репозиториев
 class RepositoryFactory:
-    """Factory Method Pattern для создания репозиториев"""
     
     @staticmethod
     def get_repository(repo_type: str, session: Session):

@@ -35,12 +35,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Инициализация БД при старте
 @app.on_event("startup")
 def startup_event():
     init_db()
 
-# ============ AUTH ENDPOINTS ============
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(
@@ -69,7 +67,6 @@ async def login(
     credentials: UserLogin,
     db: Session = Depends(get_db)
 ):
-    """Альтернативный endpoint для логина"""
     user = authenticate_user(db, credentials.login, credentials.password)
     if not user:
         raise HTTPException(
@@ -83,7 +80,7 @@ async def login(
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-# ============ STAFF ENDPOINTS ============
+
 
 @app.post("/staff", response_model=StaffResponse, status_code=status.HTTP_201_CREATED)
 async def create_staff(
@@ -91,10 +88,8 @@ async def create_staff(
     db: Session = Depends(get_db),
     current_user: Staff = Depends(get_current_user)
 ):
-    """Создание нового сотрудника (только для админов)"""
     repo = StaffRepository(db)
     
-    # Проверка уникальности логина
     existing = repo.find({"login_mis": staff.login_mis})
     if existing:
         raise HTTPException(status_code=400, detail="Login already exists")
@@ -155,7 +150,7 @@ async def delete_staff(
         raise HTTPException(status_code=404, detail="Staff not found")
     return {"message": "Staff deleted successfully"}
 
-# ============ PATIENT ENDPOINTS ============
+
 
 @app.post("/patients", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
 async def create_patient(
@@ -241,7 +236,7 @@ async def search_patients_by_name(
     results = repo.find_by_name_sql(name)
     return results
 
-# ============ VISIT ENDPOINTS ============
+
 
 @app.post("/visits", response_model=VisitResponse, status_code=status.HTTP_201_CREATED)
 async def create_visit(
@@ -318,7 +313,7 @@ async def get_visits_by_doctor(
     repo = VisitRepository(db)
     return repo.find_by_doctor(doctor_id)
 
-# ============ DIAGNOSIS ENDPOINTS ============
+
 
 @app.post("/diagnoses", response_model=DiagnosisResponse, status_code=status.HTTP_201_CREATED)
 async def create_diagnosis(
@@ -341,7 +336,6 @@ async def get_diagnoses_by_visit(
     repo = DiagnosisRepository(db)
     return repo.find({"visit_id": visit_id})
 
-# ============ TREATMENT PLAN ENDPOINTS ============
 
 @app.post("/treatment_plans", response_model=TreatmentPlanResponse, status_code=status.HTTP_201_CREATED)
 async def create_treatment_plan(
@@ -367,7 +361,7 @@ async def get_treatment_plan_by_visit(
         raise HTTPException(status_code=404, detail="Treatment plan not found")
     return plans[0]
 
-# ============ HEALTH CHECK ============
+
 
 @app.get("/")
 async def root():

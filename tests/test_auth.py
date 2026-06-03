@@ -27,16 +27,13 @@ def test_create_access_token():
 
 def test_authenticate_user(db_session, test_user):
     """Тест аутентификации пользователя"""
-    # Успешная аутентификация
     user = authenticate_user(db_session, "test_doctor", "test_password")
     assert user is not None
     assert user.login_mis == "test_doctor"
     
-    # Неверный пароль
     user = authenticate_user(db_session, "test_doctor", "wrong_password")
     assert user is False
     
-    # Несуществующий пользователь
     user = authenticate_user(db_session, "nonexistent", "password")
     assert user is False
 

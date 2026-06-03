@@ -5,7 +5,6 @@ from datetime import datetime
 from .api_client import APIClient
 
 class LoginWindow:
-    """Окно авторизации"""
     
     def __init__(self, root, api_client: APIClient):
         self.root = root
@@ -64,13 +63,11 @@ class MedicalApp:
         """Создание меню"""
         menubar = tk.Menu(self.root)
         
-        # Меню Пациенты
         patient_menu = tk.Menu(menubar, tearoff=0)
         patient_menu.add_command(label="Поиск пациента", command=self._show_patient_search)
         patient_menu.add_command(label="Регистрация пациента", command=self._show_patient_registration)
         menubar.add_cascade(label="Пациенты", menu=patient_menu)
         
-        # Меню Приемы
         visit_menu = tk.Menu(menubar, tearoff=0)
         visit_menu.add_command(label="Проведение приема", command=self._show_visit_form)
         visit_menu.add_command(label="История приемов", command=self._show_visit_history)
@@ -80,21 +77,20 @@ class MedicalApp:
     
     def _create_widgets(self):
         """Создание основных виджетов"""
-        # Notebook для переключения между вкладками
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
         
-        # Вкладка 1: Поиск пациента
+        
         self.search_frame = tk.Frame(self.notebook)
         self.notebook.add(self.search_frame, text="Поиск пациента")
         self._create_search_tab()
         
-        # Вкладка 2: Проведение приема
+    
         self.visit_frame = tk.Frame(self.notebook)
         self.notebook.add(self.visit_frame, text="Проведение приема")
         self._create_visit_tab()
         
-        # Вкладка 3: История
+       
         self.history_frame = tk.Frame(self.notebook)
         self.notebook.add(self.history_frame, text="История приемов")
         self._create_history_tab()
@@ -120,7 +116,7 @@ class MedicalApp:
             command=self._load_all_patients
         ).pack(side='left', padx=5)
         
-        # Таблица пациентов
+       
         columns = ('ID', 'ФИО', 'Дата рождения', 'Телефон', 'Паспорт')
         self.patient_tree = ttk.Treeview(self.search_frame, columns=columns, show='headings')
         
@@ -130,7 +126,7 @@ class MedicalApp:
         
         self.patient_tree.pack(fill='both', expand=True, padx=10, pady=10)
         
-        # Кнопки действий
+        
         btn_frame = tk.Frame(self.search_frame)
         btn_frame.pack(fill='x', padx=10, pady=5)
         
@@ -147,8 +143,8 @@ class MedicalApp:
         ).pack(side='left', padx=5)
     
     def _create_visit_tab(self):
-        """Вкладка проведения приема (Sequence Diagram)"""
-        # Frame для информации о пациенте
+        """Вкладка проведения приема"""
+        
         patient_info = tk.LabelFrame(self.visit_frame, text="Информация о пациенте")
         patient_info.pack(fill='x', padx=10, pady=5)
         
@@ -171,7 +167,7 @@ class MedicalApp:
             fg="white"
         ).pack(pady=5)
         
-        # Шаг 15-18: Диагноз
+        
         diagnosis_frame = tk.LabelFrame(self.visit_frame, text="Диагноз")
         diagnosis_frame.pack(fill='x', padx=10, pady=5)
         
@@ -194,7 +190,7 @@ class MedicalApp:
             command=self._save_diagnosis
         ).pack(pady=5)
         
-        # Шаг 22-25: План лечения
+        
         treatment_frame = tk.LabelFrame(self.visit_frame, text="План лечения")
         treatment_frame.pack(fill='x', padx=10, pady=5)
         
@@ -208,7 +204,7 @@ class MedicalApp:
             command=self._save_treatment_plan
         ).pack(pady=5)
         
-        # Шаг 29: Завершение приема
+        
         tk.Button(
             self.visit_frame, 
             text="Завершить прием", 
@@ -235,7 +231,7 @@ class MedicalApp:
             command=self._load_visit_history
         ).pack(pady=10)
     
-    # ============ PATIENT METHODS ============
+    
     
     def _search_patients(self):
         """Поиск пациентов"""
@@ -295,7 +291,7 @@ class MedicalApp:
             messagebox.showwarning("Внимание", "Выберите пациента")
             return
         
-        # Здесь можно открыть окно редактирования
+        
         messagebox.showinfo("Инфо", "Функция редактирования в разработке")
     
     def _show_patient_search(self):
@@ -305,7 +301,7 @@ class MedicalApp:
         """Показ окна регистрации пациента"""
         self._open_patient_registration_window()
     
-    # ============ VISIT METHODS ============
+    
     
     def _start_visit(self):
         """Начало приема (Sequence Diagram steps 8-14)"""
@@ -319,10 +315,10 @@ class MedicalApp:
             return
         
         try:
-            # Создание визита (step 9)
+            
             visit_data = self.api_client.create_visit(
-                card_id=1,  # Упрощенно, в реальности нужно получить card_id
-                doctor_id=1,  # ID текущего врача
+                card_id=1,  
+                doctor_id=1,  
                 complaints=complaints
             )
             
@@ -347,7 +343,7 @@ class MedicalApp:
             return
         
         try:
-            # Создание диагноза (step 16)
+            
             self.api_client.create_diagnosis(
                 visit_id=self.current_visit_id,
                 severity=severity,
@@ -369,7 +365,7 @@ class MedicalApp:
             return
         
         try:
-            # Создание плана лечения (step 23)
+            
             self.api_client.create_treatment_plan(
                 visit_id=self.current_visit_id,
                 doctor_conclusion=conclusion
@@ -386,12 +382,12 @@ class MedicalApp:
         
         if messagebox.askyesno("Подтверждение", "Завершить прием?"):
             try:
-                # Обновление статуса визита (step 31)
+                
                 self.api_client.complete_visit(self.current_visit_id)
                 
                 messagebox.showinfo("Успех", "Прием завершен и сохранен!")
                 
-                # Сброс формы
+                
                 self._clear_visit_form()
                 
             except Exception as e:
@@ -417,7 +413,7 @@ class MedicalApp:
             self.history_tree.delete(item)
         
         try:
-            # Загрузка визитов врача
+            
             visits = self.api_client.get_visits_by_doctor(doctor_id=1)
             
             for visit in visits:
@@ -425,7 +421,7 @@ class MedicalApp:
                     visit['visit_id'],
                     visit['visit_date'],
                     visit['card_id'],
-                    "Диагноз",  # Нужно получить из diagnoses
+                    "Диагноз",  
                     visit['status']
                 ))
         except Exception as e:
@@ -487,12 +483,12 @@ def main():
     """Точка входа в приложение"""
     api_client = APIClient()
     
-    # Окно авторизации
+    
     root = tk.Tk()
     login_window = LoginWindow(root, api_client)
     root.mainloop()
     
-    # Если авторизация успешна, запускаем основное приложение
+    
     if api_client.token:
         app_root = tk.Tk()
         app = MedicalApp(app_root, api_client)
