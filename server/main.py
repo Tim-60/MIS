@@ -2,7 +2,7 @@
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import timedelta
+from datetime import timedelta, datetime
 from sqlalchemy.orm import joinedload
 
 
@@ -38,6 +38,34 @@ app = FastAPI(
     description="MIS API with Repository Pattern",
     version="1.0.0"
 )
+
+
+@app.get("/")
+async def root():
+    """Корневой endpoint с информацией об API"""
+    return {
+        "message": "Medical Information System API is running",
+        "version": "1.0.0",
+        "endpoints": {
+            "docs": "/docs",
+            "redoc": "/redoc",
+            "health": "/health",
+            "token": "/token",
+            "login": "/login",
+            "staff": "/staff",
+            "patients": "/patients",
+            "visits": "/visits",
+            "diagnoses": "/diagnoses",
+            "treatment_plans": "/treatment_plans",
+            "payments": "/payments"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """Endpoint для проверки состояния сервиса"""
+    return {"status": "healthy"}  # ← Упрощено для теста
+
 
 @app.on_event("startup")
 def startup_event():
@@ -366,9 +394,6 @@ async def get_treatment_plan_by_visit(
     return plans[0]
 
 
-# ==========================================================
-# НОВЫЕ ЭНДПОИНТЫ ДЛЯ РАБОТЫ С ОПЛАТОЙ
-# ==========================================================
 
 @app.post("/payments", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 async def create_payment(

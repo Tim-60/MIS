@@ -38,7 +38,6 @@ class Visit(Base):
     visit_date = Column(DateTime, default=datetime.now)
     status = Column(String(20), default="in_progress")  
     
-    # Связи определяем со строками, так как MedicalCard еще не определена
     card = relationship("MedicalCard", back_populates="visits")
     doctor = relationship("Staff", back_populates="visits_as_doctor", foreign_keys=[doctor_id])
     diagnoses = relationship("Diagnosis", back_populates="visit", cascade="all, delete-orphan")
