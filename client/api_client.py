@@ -152,3 +152,117 @@ class APIClient:
         )
         response.raise_for_status()
         return response.json()
+    
+    
+    
+    def create_payment(self, visit_id: int, payment_type: str, amount: float) -> Dict:
+        """
+        Создание записи об оплате приема
+        
+        Args:
+            visit_id: ID визита
+            payment_type: Тип оплаты ("insurance" для страховки, "out_of_pocket" для собственного счета)
+            amount: Сумма оплаты
+        
+        Returns:
+            Dict: Данные созданной записи оплаты
+        """
+        response = requests.post(
+            f"{self.base_url}/payments",
+            json={
+                "visit_id": visit_id,
+                "payment_type": payment_type,
+                "amount": amount
+            },
+            headers=self._get_headers()
+        )
+        response.raise_for_status()
+        return response.json()
+    
+    def get_payment_by_visit(self, visit_id: int) -> Optional[Dict]:
+        """
+        Получение информации об оплате визита
+        
+        Args:
+            visit_id: ID визита
+        
+        Returns:
+            Dict: Данные об оплате или None, если оплата не найдена
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/payments/visit/{visit_id}",
+                headers=self._get_headers()
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException:
+            return None
+    
+    def update_payment(self, payment_id: int, payment_data: Dict) -> Dict:
+        """
+        Обновление записи об оплате
+        
+        Args:
+            payment_id: ID записи оплаты
+            payment_data: Данные для обновления
+        
+        Returns:
+            Dict: Обновленные данные оплаты
+        """
+        response = requests.put(
+            f"{self.base_url}/payments/{payment_id}",
+            json=payment_data,
+            headers=self._get_headers()
+        )
+        response.raise_for_status()
+        return response.json()
+    
+    def delete_payment(self, payment_id: int) -> bool:
+        """
+        Удаление записи об оплате
+        
+        Args:
+            payment_id: ID записи оплаты
+        
+        Returns:
+            bool: True если успешно удалено
+        """
+        response = requests.delete(
+            f"{self.base_url}/payments/{payment_id}",
+            headers=self._get_headers()
+        )
+        return response.status_code == 200
+    
+    def get_payments_history(self, patient_id: Optional[int] = None) -> List[Dict]:
+        """
+        Получение истории оплат (опционально по пациенту)
+        
+        Args:
+            patient_id: ID пациента (если None, возвращает все оплаты)
+        
+        Returns:
+            List[Dict]: Список записей об оплате
+        """
+        if patient_id:
+            endpoint = f"{self.base_url}/payments/patient/{patient_id}"
+        else:
+            endpoint = f"{self.base_url}/payments"
+        
+        response = requests.get(
+            endpoint,
+            headers=self._get_headers()
+        )
+        response.raise_for_status()
+        return response.json()
+    
+    def get_visits_full_info(self, doctor_id: int) -> List[Dict]:
+        """Получение визитов с полной информацией (пациент, диагноз, оплата)"""
+        response = requests.get(
+            f"{self.base_url}/visits/doctor/{doctor_id}/full",
+            headers=self._get_headers()
+        )
+        response.raise_for_status()
+        return response.json()

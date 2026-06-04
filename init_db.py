@@ -4,7 +4,7 @@
 """
 
 from server.database import init_db, engine, Base
-from server.models import Staff
+from server.models import Staff, Patient, MedicalCard, Visit, Diagnosis, TreatmentPlan, Service, Equipment, Payment  # ← Добавьте все модели!
 from server.database import SessionLocal
 from server.auth import get_password_hash
 

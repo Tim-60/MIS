@@ -139,3 +139,23 @@ class TokenData(BaseModel):
 class UserLogin(BaseModel):
     login: str
     password: str
+
+class PaymentBase(BaseModel):
+    visit_id: int
+    payment_type: str
+    amount: float
+
+class PaymentCreate(PaymentBase):
+    pass
+
+class PaymentUpdate(BaseModel):
+    payment_type: Optional[str] = None
+    amount: Optional[float] = None
+
+class PaymentResponse(PaymentBase):
+    payment_id: int
+    payment_date: datetime
+    
+    class Config:
+        from_attributes = True
+        

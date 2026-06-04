@@ -3,9 +3,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import timedelta
+from sqlalchemy.orm import joinedload
+
 
 from .database import get_db, init_db
-from .models import Staff, Patient, Visit, Diagnosis, TreatmentPlan
+from .models import MedicalCard, Staff, Patient, Visit, Diagnosis, TreatmentPlan, Payment
 from .auth import (
     authenticate_user, 
     create_access_token, 
@@ -18,14 +20,16 @@ from .repositories import (
     VisitRepository,
     DiagnosisRepository,
     TreatmentPlanRepository,
+    PaymentRepository,
     RepositoryFactory
 )
 from .schemas import (
-    StaffCreate, StaffResponse, StaffUpdate,
+    MedicalCardResponse, StaffCreate, StaffResponse, StaffUpdate,
     PatientCreate, PatientResponse, PatientUpdate,
     VisitCreate, VisitResponse, VisitUpdate,
     DiagnosisCreate, DiagnosisResponse,
     TreatmentPlanCreate, TreatmentPlanResponse,
+    PaymentCreate, PaymentResponse, PaymentUpdate,
     Token, UserLogin
 )
 
@@ -362,11 +366,176 @@ async def get_treatment_plan_by_visit(
     return plans[0]
 
 
+# ==========================================================
+# НОВЫЕ ЭНДПОИНТЫ ДЛЯ РАБОТЫ С ОПЛАТОЙ
+# ==========================================================
 
-@app.get("/")
-async def root():
-    return {"message": "Medical Information System API", "version": "1.0.0"}
+@app.post("/payments", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
+async def create_payment(
+    payment: PaymentCreate,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    """
+    Создание записи об оплате приема
+    """
+    # Проверяем существование визита
+    visit_repo = VisitRepository(db)
+    visit = visit_repo.get_by_id(payment.visit_id)
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found")
+    
+    # Проверяем, нет ли уже оплаты для этого визита
+    payment_repo = PaymentRepository(db)
+    existing = payment_repo.find({"visit_id": payment.visit_id})
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail="Payment for this visit already exists"
+        )
+    
+    db_payment = Payment(**payment.dict())
+    return payment_repo.add(db_payment)
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+@app.get("/payments", response_model=List[PaymentResponse])
+async def get_all_payments(
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    """Получение всех записей об оплате"""
+    repo = PaymentRepository(db)
+    return repo.get_all()
+
+@app.get("/payments/{payment_id}", response_model=PaymentResponse)
+async def get_payment(
+    payment_id: int,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    """Получение записи об оплате по ID"""
+    repo = PaymentRepository(db)
+    payment = repo.get_by_id(payment_id)
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    return payment
+
+@app.get("/payments/visit/{visit_id}", response_model=PaymentResponse)
+async def get_payment_by_visit(
+    visit_id: int,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    """Получение информации об оплате визита"""
+    repo = PaymentRepository(db)
+    payments = repo.find({"visit_id": visit_id})
+    if not payments:
+        raise HTTPException(status_code=404, detail="Payment not found for this visit")
+    return payments[0]
+
+@app.get("/payments/patient/{patient_id}", response_model=List[PaymentResponse])
+async def get_payments_by_patient(
+    patient_id: int,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    """Получение истории оплат пациента"""
+    repo = PaymentRepository(db)
+    return repo.find_by_patient(patient_id)
+
+@app.put("/payments/{payment_id}", response_model=PaymentResponse)
+async def update_payment(
+    payment_id: int,
+    payment_update: PaymentUpdate,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    """Обновление записи об оплате"""
+    repo = PaymentRepository(db)
+    existing_payment = repo.get_by_id(payment_id)
+    if not existing_payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    update_data = payment_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(existing_payment, field, value)
+    
+    return repo.update(existing_payment)
+
+@app.delete("/payments/{payment_id}")
+async def delete_payment(
+    payment_id: int,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    """Удаление записи об оплате"""
+    repo = PaymentRepository(db)
+    if not repo.delete(payment_id):
+        raise HTTPException(status_code=404, detail="Payment not found")
+    return {"message": "Payment deleted successfully"}
+
+
+@app.get("/visits/doctor/{doctor_id}/full")
+async def get_visits_full_info(
+    doctor_id: int,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_user)
+):
+    # Загружаем визиты
+    visits = db.query(Visit).filter(Visit.doctor_id == doctor_id).all()
+    
+    result = []
+    for visit in visits:
+        # === ЯВНО загружаем связанные данные ===
+        # Загружаем карту и пациента
+        if visit.card_id:
+            card = db.query(MedicalCard).options(
+                joinedload(MedicalCard.patient)
+            ).get(visit.card_id)
+        else:
+            card = None
+        
+        # Загружаем диагнозы
+        diagnoses = db.query(Diagnosis).filter(
+            Diagnosis.visit_id == visit.visit_id
+        ).all()
+        
+        # Загружаем оплаты
+        payments = db.query(Payment).filter(
+            Payment.visit_id == visit.visit_id
+        ).all()
+        
+        # === Формируем данные ===
+        patient_name = "Нет карты"
+        if card:
+            if card.patient:
+                patient_name = card.patient.full_name
+            else:
+                patient_name = f"Карта #{card.card_id} (нет пациента)"
+        
+        diagnosis_text = "Диагноз не установлен"
+        if diagnoses and len(diagnoses) > 0:
+            diagnosis_text = diagnoses[0].description
+        
+        payment_info = None
+        if payments and len(payments) > 0:
+            payment = payments[0]
+            payment_type = "Страховка" if payment.payment_type == "insurance" else "Собств. счет"
+            payment_info = {
+                "payment_id": payment.payment_id,
+                "payment_type": payment.payment_type,
+                "amount": float(payment.amount),
+                "payment_type_display": payment_type
+            }
+        
+        visit_date = visit.visit_date.isoformat() if visit.visit_date else None
+        
+        result.append({
+            "visit_id": visit.visit_id,
+            "visit_date": visit_date,
+            "patient_name": patient_name,
+            "diagnosis": diagnosis_text,
+            "status": visit.status,
+            "payment": payment_info
+        })
+    
+    return result

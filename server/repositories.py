@@ -123,7 +123,6 @@ class StaffRepository(IRepository[Staff]):
 
 class PatientRepository(IRepository[Patient]):
     
-    
     def __init__(self, session: Session):
         self.session = session
         self.model = Patient
@@ -165,7 +164,6 @@ class PatientRepository(IRepository[Patient]):
                 query = query.filter(getattr(Patient, field) == value)
         return query.all()
     
-    
     def find_by_name_sql(self, name: str) -> List[Dict]:
         result = self.session.execute(
             text("SELECT * FROM patients WHERE full_name LIKE :name"),
@@ -184,7 +182,6 @@ class PatientRepository(IRepository[Patient]):
         return [dict(row._mapping) for row in result.fetchall()]
 
 class VisitRepository(IRepository[Visit]):
-    
     
     def __init__(self, session: Session):
         self.session = session
@@ -227,7 +224,6 @@ class VisitRepository(IRepository[Visit]):
                 query = query.filter(getattr(Visit, field) == value)
         return query.all()
     
-    
     def find_by_doctor(self, doctor_id: int) -> List[Visit]:
         return self.session.query(Visit).filter(Visit.doctor_id == doctor_id).all()
     
@@ -235,7 +231,6 @@ class VisitRepository(IRepository[Visit]):
         return self.session.query(Visit).filter(
             Visit.visit_date.between(start, end)
         ).all()
-    
     
     def find_by_doctor_sql(self, doctor_id: int) -> List[Dict]:
         result = self.session.execute(
@@ -301,7 +296,6 @@ class DiagnosisRepository(IRepository[Diagnosis]):
 
 class TreatmentPlanRepository(IRepository[TreatmentPlan]):
     
-    
     def __init__(self, session: Session):
         self.session = session
         self.model = TreatmentPlan
@@ -343,6 +337,67 @@ class TreatmentPlanRepository(IRepository[TreatmentPlan]):
                 query = query.filter(getattr(TreatmentPlan, field) == value)
         return query.all()
 
+class PaymentRepository(IRepository[Payment]):
+    """Репозиторий для работы с оплатами"""
+    
+    def __init__(self, session: Session):
+        self.session = session
+        self.model = Payment
+    
+    def get_by_id(self, id: int) -> Optional[Payment]:
+        """Получение записи об оплате по ID"""
+        return self.session.query(Payment).filter(Payment.payment_id == id).first()
+    
+    def get_all(self) -> List[Payment]:
+        """Получение всех записей об оплате"""
+        return self.session.query(Payment).all()
+    
+    def add(self, entity: Payment) -> Payment:
+        """Добавление новой записи об оплате"""
+        self.session.add(entity)
+        self.session.commit()
+        self.session.refresh(entity)
+        return entity
+    
+    def update(self, entity: Payment) -> Payment:
+        """Обновление записи об оплате"""
+        db_entity = self.get_by_id(entity.payment_id)
+        if db_entity:
+            for field, value in entity.__dict__.items():
+                if not field.startswith('_') and value is not None:
+                    setattr(db_entity, field, value)
+            self.session.commit()
+            self.session.refresh(db_entity)
+        return db_entity
+    
+    def delete(self, id: int) -> bool:
+        """Удаление записи об оплате"""
+        entity = self.get_by_id(id)
+        if entity:
+            self.session.delete(entity)
+            self.session.commit()
+            return True
+        return False
+    
+    def find(self, filters: Dict[str, Any]) -> List[Payment]:
+        """Поиск записей об оплате по фильтрам"""
+        query = self.session.query(Payment)
+        for field, value in filters.items():
+            if hasattr(Payment, field):
+                query = query.filter(getattr(Payment, field) == value)
+        return query.all()
+    
+    def find_by_patient(self, patient_id: int) -> List[Payment]:
+        """Поиск оплат по ID пациента (через визит)"""
+        return self.session.query(Payment).join(Visit).filter(
+            Visit.card_id == patient_id
+        ).all()
+    
+    def find_by_visit(self, visit_id: int) -> Optional[Payment]:
+        """Поиск оплаты по ID визита"""
+        return self.session.query(Payment).filter(Payment.visit_id == visit_id).first()
+
+
 class RepositoryFactory:
     
     @staticmethod
@@ -352,10 +407,15 @@ class RepositoryFactory:
             'patient': PatientRepository,
             'visit': VisitRepository,
             'diagnosis': DiagnosisRepository,
-            'treatment_plan': TreatmentPlanRepository
+            'treatment_plan': TreatmentPlanRepository,
+            'payment': PaymentRepository
         }
         
         if repo_type not in repositories:
             raise ValueError(f"Unknown repository type: {repo_type}")
         
         return repositories[repo_type](session)
+    
+    @staticmethod
+    def create_payment_repository(session: Session) -> PaymentRepository:
+        return PaymentRepository(session)

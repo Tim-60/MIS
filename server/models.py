@@ -28,6 +28,23 @@ class Patient(Base):
     
     medical_cards = relationship("MedicalCard", back_populates="patient", cascade="all, delete-orphan")
 
+class Visit(Base):
+    __tablename__ = "visits"
+    
+    visit_id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(Integer, ForeignKey("medical_cards.card_id"), nullable=False)
+    doctor_id = Column(Integer, ForeignKey("staff.staff_id"), nullable=False)
+    complaints = Column(Text)
+    visit_date = Column(DateTime, default=datetime.now)
+    status = Column(String(20), default="in_progress")  
+    
+    # Связи определяем со строками, так как MedicalCard еще не определена
+    card = relationship("MedicalCard", back_populates="visits")
+    doctor = relationship("Staff", back_populates="visits_as_doctor", foreign_keys=[doctor_id])
+    diagnoses = relationship("Diagnosis", back_populates="visit", cascade="all, delete-orphan")
+    treatment_plan = relationship("TreatmentPlan", back_populates="visit", uselist=False, cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="visit", cascade="all, delete-orphan")
+
 class MedicalCard(Base):
     __tablename__ = "medical_cards"
     
@@ -41,21 +58,6 @@ class MedicalCard(Base):
     registrar = relationship("Staff", back_populates="medical_cards")
     visits = relationship("Visit", back_populates="card", cascade="all, delete-orphan")
 
-class Visit(Base):
-    __tablename__ = "visits"
-    
-    visit_id = Column(Integer, primary_key=True, index=True)
-    card_id = Column(Integer, ForeignKey("medical_cards.card_id"), nullable=False)
-    doctor_id = Column(Integer, ForeignKey("staff.staff_id"), nullable=False)
-    complaints = Column(Text)
-    visit_date = Column(DateTime, default=datetime.now)
-    status = Column(String(20), default="in_progress")  
-    
-    card = relationship("MedicalCard", back_populates="visits")
-    doctor = relationship("Staff", back_populates="visits_as_doctor", foreign_keys=[doctor_id])
-    diagnoses = relationship("Diagnosis", back_populates="visit", cascade="all, delete-orphan")
-    treatment_plan = relationship("TreatmentPlan", back_populates="visit", uselist=False, cascade="all, delete-orphan")
-    payments = relationship("Payment", back_populates="visit", cascade="all, delete-orphan")
 
 class Diagnosis(Base):
     __tablename__ = "diagnoses"
